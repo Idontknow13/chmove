@@ -5,19 +5,19 @@
 //! A binary showing an asterisk moving from one place
 //! to another in the terminal.
 
+mod config;
+
+use config::AnimationConfig;
+
+use anyhow::{Context, Result};
 use clap::Parser;
-use std::{
-    io::{stdout, Result as IOResult, Write},
-    thread,
-    time::Duration,
-};
 
 /// A program which depicts a character moving
 /// from one place to another
 #[derive(Parser, Debug)]
 #[command(about)]
 struct Cli {
-    /// The amount of units the character will traverse
+    /// The amount of units the character will move through
     #[arg(short = 'd', long, default_value_t = 5)]
     distance: usize,
 
@@ -28,77 +28,32 @@ struct Cli {
     /// Provide a custom character to animate
     #[arg(short, long = "char", default_value_t = '*')]
     character: char,
+
+    /// Provide a custom starting char
+    #[arg(short = 'S', long, default_value_t = '[')]
+    start_char: char,
+
+    /// Provide a custom end/goal char
+    #[arg(short = 'E', long, default_value_t = ']')]
+    end_char: char,
+
+    /// Provide a custom spacer
+    #[arg(short = 'R', long, default_value_t = ' ')]
+    spacer: char,
 }
 
 #[doc(hidden)]
-fn main() {
-    let args = Cli::parse();
+fn main() -> Result<()> {
+    let args = Cli::try_parse().with_context(|| "Failed to parse your config :(")?;
 
-    let config = AnimationConfig::init()
+    AnimationConfig::new()
         .with_char(args.character)
-        .until(args.distance);
+        .with_bounds((args.start_char, args.end_char))
+        .spaced_with(args.spacer)
+        .until(args.distance)
+        .animate_with(args.speed)
+        .with_context(|| "Failed to animate with your specified config :(")?;
 
-    if config.move_with(args.speed).is_ok() {
-        println!("The character reached its goal!");
-    }
-}
-
-// TODO: Put this in separate module
-// TODO: Change this config to a builder
-/// A config struct containing all the needed context
-/// for the movement animation.
-struct AnimationConfig {
-    character: char,
-    distance: usize,
-}
-
-impl Default for AnimationConfig {
-    fn default() -> Self {
-        Self {
-            character: '*',
-            distance: 5,
-        }
-    }
-}
-
-impl AnimationConfig {
-    /// Create a new instance of `AnimationConfig`
-    fn init() -> Self {
-        Self::default()
-    }
-
-    /// Specify a unique character for the config.
-    fn with_char(mut self, ch: char) -> Self {
-        self.character = ch;
-        self
-    }
-
-    /// Specify a traveling distance for the animation.
-    fn until(mut self, distance: usize) -> Self {
-        self.distance = distance;
-        self
-    }
-
-    /// Creates the moving animation for the asterisk given
-    /// a certain distance and speed in ms.
-    fn move_with(self, speed: u64) -> IOResult<()> {
-        const CLEAR_LINE_ABOVE: &str = "\x1b[1A\x1b[2K";
-        let distance = self.distance;
-
-        for traveled in 0..=distance {
-            if traveled > 0 {
-                print!("{CLEAR_LINE_ABOVE}");
-            }
-
-            println!(
-                "[{front_space}{character}{lead_space}]",
-                front_space = " ".repeat(traveled),
-                character = self.character,
-                lead_space = " ".repeat(distance - traveled)
-            );
-            stdout().flush()?;
-            thread::sleep(Duration::from_millis(speed));
-        }
-        Ok(())
-    }
+    println!("The character has reached its goal!");
+    Ok(())
 }

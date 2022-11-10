@@ -1,8 +1,8 @@
 #![warn(missing_docs)]
 
-//! # moving_asterisk
+//! # chmove
 //!
-//! A binary showing an asterisk moving from one place
+//! A binary showing a character moving from one place
 //! to another in the terminal.
 
 mod config;

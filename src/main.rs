@@ -44,7 +44,7 @@ struct Cli {
 
 #[doc(hidden)]
 fn main() -> Result<()> {
-    let args = Cli::try_parse().with_context(|| "Failed to parse your config :(")?;
+    let args = Cli::try_parse().with_context(|| "Please enter a config!")?;
 
     AnimationConfig::new()
         .with_char(args.character)
